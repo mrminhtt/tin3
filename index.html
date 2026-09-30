@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cờ Ca-rô Đỉnh Cao - Trò Chơi Trí Tuệ Online</title>
+  <meta name="description" content="Trang web chơi cờ Caro (Gomoku / Tic-tac-toe) hiện đại, mượt mà. Hỗ trợ chơi 2 người, đấu với máy AI thông minh, nhiều kích thước bàn cờ, âm thanh sống động.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%230f172a'/><path d='M25 25 L50 50 M50 25 L25 50' stroke='%23ff3366' stroke-width='9' stroke-linecap='round'/><circle cx='68' cy='68' r='14' stroke='%2300f2fe' stroke-width='8' fill='none'/></svg>">
+</head>
+<body>
+  <!-- Background Glow Orbs -->
+  <div class="bg-glow bg-glow-1" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-2" aria-hidden="true"></div>
+
+  <!-- Confetti Canvas -->
+  <canvas id="confetti-canvas" aria-hidden="true"></canvas>
+
+  <div class="app-layout">
+    <!-- Header -->
+    <header class="game-header">
+      <div class="header-branding">
+        <div class="logo-badge">
+          <span class="x-mark">✕</span>
+          <span class="o-mark">◯</span>
+        </div>
+        <div class="title-group">
+          <h1 class="game-title">CỜ CA-RÔ <span class="badge-pro">PRO</span></h1>
+          <p class="game-subtitle">Chiến thuật đỉnh cao • Thử thách trí tuệ</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="btn-sound-toggle" class="btn-icon" title="Bật/Tắt âm thanh" aria-label="Bật hoặc tắt âm thanh">
+          <span class="icon" id="sound-icon">🔊</span>
+        </button>
+        <button id="btn-theme-toggle" class="btn-icon" title="Đổi giao diện Sáng / Tối" aria-label="Đổi giao diện">
+          <span class="icon" id="theme-icon">🌙</span>
+        </button>
+        <button id="btn-rules-modal" class="btn-icon" title="Hướng dẫn & Luật chơi" aria-label="Xem hướng dẫn">
+          <span class="icon">❓</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Settings & Quick Control Bar -->
+    <section class="control-ribbon" aria-label="Cài đặt trận đấu">
+      <!-- Game Mode: 2 Players or vs AI -->
+      <div class="ribbon-group">
+        <span class="ribbon-label">Chế độ:</span>
+        <div class="segmented-control" id="mode-control" role="radiogroup">
+          <button type="button" class="segment-btn active" data-mode="pvp" id="mode-pvp" role="radio" aria-checked="true">
+            <span class="btn-icon-small">👥</span> 2 Người
+          </button>
+          <button type="button" class="segment-btn" data-mode="ai" id="mode-ai" role="radio" aria-checked="false">
+            <span class="btn-icon-small">🤖</span> Đấu AI
+          </button>
+        </div>
+      </div>
+
+      <!-- AI Difficulty (Hidden if PvP) -->
+      <div class="ribbon-group" id="ai-difficulty-group" style="display: none;">
+        <span class="ribbon-label">Cấp độ AI:</span>
+        <div class="segmented-control" id="diff-control" role="radiogroup">
+          <button type="button" class="segment-btn" data-diff="easy" role="radio" aria-checked="false">Dễ</button>
+          <button type="button" class="segment-btn active" data-diff="medium" role="radio" aria-checked="true">Khá</button>
+          <button type="button" class="segment-btn" data-diff="hard" role="radio" aria-checked="false">Khó 🔥</button>
+        </div>
+      </div>
+
+      <!-- Board Size -->
+      <div class="ribbon-group">
+        <span class="ribbon-label">Bàn cờ:</span>
+        <div class="segmented-control" id="size-control" role="radiogroup">
+          <button type="button" class="segment-btn active" data-size="15" role="radio" aria-checked="true">15x15 (Chuẩn)</button>
+          <button type="button" class="segment-btn" data-size="10" role="radio" aria-checked="false">10x10</button>
+          <button type="button" class="segment-btn" data-size="3" role="radio" aria-checked="false">3x3</button>
+        </div>
+      </div>
+
+      <!-- Caro Rule: Block 2 Ends toggle -->
+      <div class="ribbon-group" id="rule-group">
+        <label class="toggle-control" title="Nếu bật: 5 quân liên tiếp bị đối phương chặn cả 2 đầu sẽ chưa được tính thắng">
+          <input type="checkbox" id="block-two-ends-toggle" checked>
+          <span class="toggle-slider"></span>
+          <span class="toggle-text">Chặn 2 đầu không thắng</span>
+        </label>
+      </div>
+    </section>
+
+    <!-- Main Game Area -->
+    <main class="main-content">
+      <!-- Sidebar / Info Panel -->
+      <aside class="sidebar-panel">
+        <!-- Current Turn Status Card -->
+        <div class="panel-card turn-card" id="turn-card">
+          <div class="turn-header">
+            <span class="sub-label">LƯỢT ĐI HIỆN TẠI</span>
+            <div class="status-pulse" id="status-pulse"></div>
+          </div>
+          <div class="turn-display">
+            <div class="turn-piece-wrapper" id="turn-piece-preview">
+              <span class="piece-symbol x-symbol">✕</span>
+            </div>
+            <div class="turn-text-info">
+              <h2 class="current-player-name" id="current-player-name">Người chơi X</h2>
+              <p class="current-turn-status" id="current-turn-status">Đang sẵn sàng đi nước...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scoreboard Card -->
+        <div class="panel-card score-card">
+          <div class="card-header-row">
+            <span class="sub-label">BẢNG THÀNH TÍCH</span>
+            <button id="btn-reset-score" class="btn-text-action" title="Đặt lại điểm">Đặt lại</button>
+          </div>
+          <div class="score-grid">
+            <div class="score-box score-x">
+              <div class="player-tag">
+                <span class="marker x-color">✕</span>
+                <span class="player-label" id="score-label-x">Người chơi X</span>
+              </div>
+              <div class="score-number" id="score-x-val">0</div>
+            </div>
+            <div class="score-box score-draw">
+              <div class="player-tag">
+                <span class="marker draw-color">🤝</span>
+                <span class="player-label">Hoà</span>
+              </div>
+              <div class="score-number" id="score-draw-val">0</div>
+            </div>
+            <div class="score-box score-o">
+              <div class="player-tag">
+                <span class="marker o-color">◯</span>
+                <span class="player-label" id="score-label-o">Người chơi O</span>
+              </div>
+              <div class="score-number" id="score-o-val">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Match Stats (Timer & Moves) -->
+        <div class="panel-card stats-card">
+          <div class="stat-item">
+            <span class="stat-icon">⏱️</span>
+            <div class="stat-data">
+              <span class="stat-title">Thời gian</span>
+              <span class="stat-value" id="match-timer">00:00</span>
+            </div>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat-item">
+            <span class="stat-icon">🎯</span>
+            <div class="stat-data">
+              <span class="stat-title">Số nước đã đi</span>
+              <span class="stat-value" id="move-counter">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons-group">
+          <button id="btn-new-game" class="btn-primary" title="Bắt đầu ván mới (Phím tắt: R)">
+            <span class="btn-icon">🔄</span> Ván Mới
+          </button>
+          <button id="btn-undo-move" class="btn-secondary" title="Hoàn tác nước đi gần nhất (Phím tắt: Z)">
+            <span class="btn-icon">↩️</span> Đi Lại
+          </button>
+        </div>
+
+        <!-- Shortcuts Help -->
+        <div class="shortcuts-note">
+          <span>💡 Phím tắt:</span>
+          <code>R</code> Ván mới • <code>Z</code> Đi lại • <code>M</code> Âm thanh
+        </div>
+      </aside>
+
+      <!-- Board Section -->
+      <section class="board-container" id="board-container">
+        <!-- Board Zoom & Fit Controls (Mobile friendly) -->
+        <div class="board-toolbar">
+          <div class="board-info-tip" id="board-info-tip">
+            <span class="tip-icon">✨</span> Nhấn vào ô để đặt quân
+          </div>
+          <div class="zoom-controls">
+            <button id="btn-zoom-out" class="btn-toolbar" title="Thu nhỏ bàn cờ" aria-label="Thu nhỏ">🔍−</button>
+            <button id="btn-zoom-reset" class="btn-toolbar" title="Kích thước mặc định" aria-label="Mặc định">100%</button>
+            <button id="btn-zoom-in" class="btn-toolbar" title="Phóng to bàn cờ" aria-label="Phóng to">🔍+</button>
+          </div>
+        </div>
+
+        <!-- Interactive Board Wrapper -->
+        <div class="board-scroll-wrapper" id="board-scroll-wrapper">
+          <div class="board-centerer">
+            <div class="caro-board" id="caro-board" role="grid" aria-label="Bàn cờ caro">
+              <!-- Dynamically populated by game.js -->
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="game-footer">
+      <p>Cờ Ca-rô Online • Phát triển với phong cách hiện đại & trải nghiệm thông minh.</p>
+    </footer>
+  </div>
+
+  <!-- Winner / Game Over Modal -->
+  <div class="modal-overlay" id="game-over-modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-confetti-spark" aria-hidden="true">🎉</div>
+      <div class="modal-badge-wrapper" id="modal-winner-badge">
+        <span class="modal-avatar" id="modal-avatar">🏆</span>
+      </div>
+      <h2 class="modal-title" id="modal-title">Chiến Thắng!</h2>
+      <p class="modal-subtitle" id="modal-subtitle">Người chơi X đã hoàn thành chuỗi 5 quân xuất sắc!</p>
+
+      <div class="modal-stats-box">
+        <div class="modal-stat">
+          <span class="m-stat-label">Thời gian đấu</span>
+          <span class="m-stat-val" id="modal-time-val">01:25</span>
+        </div>
+        <div class="modal-stat">
+          <span class="m-stat-label">Tổng nước cờ</span>
+          <span class="m-stat-val" id="modal-moves-val">28</span>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="btn-modal-rematch" class="btn-primary">
+          <span>🔄</span> Chơi Ván Tiếp
+        </button>
+        <button id="btn-modal-close" class="btn-secondary">
+          <span>👀</span> Xem Lại Thế Cờ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rules / Guide Modal -->
+  <div class="modal-overlay" id="rules-modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-card rules-card">
+      <div class="modal-header-with-close">
+        <h2 class="modal-title">📖 Luật Chơi & Hướng Dẫn</h2>
+        <button id="btn-close-rules" class="btn-icon" aria-label="Đóng bảng hướng dẫn">✕</button>
+      </div>
+      <div class="rules-body">
+        <div class="rule-section">
+          <h3>🎯 Mục tiêu trò chơi</h3>
+          <p>Hai người chơi lần lượt đánh dấu vào các ô trống bằng quân <strong>X</strong> và <strong>O</strong>. Người nào tạo được một hàng thẳng (ngang, dọc hoặc chéo) gồm đủ số quân liên tiếp trước sẽ chiến thắng.</p>
+        </div>
+
+        <div class="rule-section">
+          <h3>📏 Điều kiện chiến thắng theo kích thước</h3>
+          <ul>
+            <li><strong>Bàn cờ 15x15 (Chuẩn):</strong> Tạo thành một hàng <strong>5 quân</strong> liên tiếp.</li>
+            <li><strong>Bàn cờ 10x10:</strong> Tạo thành một hàng <strong>5 quân</strong> liên tiếp.</li>
+            <li><strong>Bàn cờ 3x3 (Tic-Tac-Toe):</strong> Tạo thành một hàng <strong>3 quân</strong> liên tiếp.</li>
+          </ul>
+        </div>
+
+        <div class="rule-section">
+          <h3>🛡️ Luật chặn 2 đầu (Luật Caro Việt Nam)</h3>
+          <p>Khi bật tính năng <em>"Chặn 2 đầu không thắng"</em>: Nếu bạn có chuỗi 5 quân liên tiếp nhưng cả 2 đầu ngoài cùng đều bị đối thủ chặn thì bạn <strong>chưa thắng</strong>. Bạn cần đạt chuỗi 6 quân hoặc mở ít nhất 1 đầu để giành chiến thắng.</p>
+        </div>
+
+        <div class="rule-section">
+          <h3>🤖 Chế độ đấu với Máy (AI)</h3>
+          <ul>
+            <li><strong>Dễ:</strong> Phù hợp cho người mới làm quen, AI đánh ngẫu nhiên và giải trí.</li>
+            <li><strong>Khá:</strong> AI biết nhận diện nguy cơ chuỗi 3, 4 quân để ngăn chặn và tự tấn công.</li>
+            <li><strong>Khó:</strong> Thuật toán AI phân tích chiến thuật toàn diện, đánh chặn và dàn thế cờ chuẩn xác!</li>
+          </ul>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-understand-rules" class="btn-primary">Đã Hiểu, Bắt Đầu Chơi!</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
